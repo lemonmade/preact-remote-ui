@@ -1,0 +1,1 @@
+This repo contains a minimal changeset on top of [preact](https://preactjs.com) in order to support rendering to [remote-ui](https://github.com/Shopify/remote-ui) instead of the DOM. The code was pulled from preact at [this commit](https://github.com/preactjs/preact/commit/b17a932342bfdeeaf1dc0fbe4f436c83e258d6c8) on September 16, 2020.
