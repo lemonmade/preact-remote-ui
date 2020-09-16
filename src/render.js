@@ -1,3 +1,4 @@
+import { KIND_ROOT } from '@remote-ui/core';
 import { EMPTY_OBJ, EMPTY_ARR } from './constants';
 import { commitRoot, diff } from './diff/index';
 import { createElement, Fragment } from './create-element';
@@ -45,12 +46,13 @@ export function render(vnode, parentDom, replaceNode) {
 			? [replaceNode]
 			: oldVNode
 			? null
-			: parentDom.childNodes.length
-			? EMPTY_ARR.slice.call(parentDom.childNodes)
+			: parentDom.children.length
+			? EMPTY_ARR.slice.call(parentDom.children)
 			: null,
 		commitQueue,
 		replaceNode || EMPTY_OBJ,
-		isHydrating
+		isHydrating,
+		getRemoteRoot(parentDom)
 	);
 
 	// Flush all queued effects
@@ -65,4 +67,8 @@ export function render(vnode, parentDom, replaceNode) {
  */
 export function hydrate(vnode, parentDom) {
 	render(vnode, parentDom, IS_HYDRATE);
+}
+
+function getRemoteRoot(node) {
+	return node.kind === KIND_ROOT ? node : node.root;
 }

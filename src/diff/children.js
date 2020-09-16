@@ -34,7 +34,8 @@ export function diffChildren(
 	excessDomChildren,
 	commitQueue,
 	oldDom,
-	isHydrating
+	isHydrating,
+	remoteRoot
 ) {
 	let i, j, oldVNode, childVNode, newDom, firstChildDom, refs;
 
@@ -149,7 +150,8 @@ export function diffChildren(
 			excessDomChildren,
 			commitQueue,
 			oldDom,
-			isHydrating
+			isHydrating,
+			remoteRoot
 		);
 
 		if ((j = childVNode.ref) && oldVNode.ref != j) {
@@ -173,19 +175,7 @@ export function diffChildren(
 				oldDom
 			);
 
-			// Browsers will infer an option's `value` from `textContent` when
-			// no value is present. This essentially bypasses our code to set it
-			// later in `diff()`. It works fine in all browsers except for IE11
-			// where it breaks setting `select.value`. There it will be always set
-			// to an empty string. Re-applying an options value will fix that, so
-			// there are probably some internal data structures that aren't
-			// updated properly.
-			//
-			// To fix it we make sure to reset the inferred value, so that our own
-			// value check in `diff()` won't be skipped.
-			if (!isHydrating && newParentVNode.type == 'option') {
-				parentDom.value = '';
-			} else if (typeof newParentVNode.type == 'function') {
+			if (typeof newParentVNode.type == 'function') {
 				// Because the newParentVNode is Fragment-like, we need to set it's
 				// _nextDom property to the nextSibling of its last child DOM node.
 				//
@@ -198,7 +188,7 @@ export function diffChildren(
 		} else if (
 			oldDom &&
 			oldVNode._dom == oldDom &&
-			oldDom.parentNode != parentDom
+			oldDom.parent != parentDom
 		) {
 			// The above condition is to handle null placeholders. See test in placeholder.test.js:
 			// `efficiently replace null placeholders in parent rerenders`
@@ -271,20 +261,20 @@ export function placeChild(
 	} else if (
 		excessDomChildren == oldVNode ||
 		newDom != oldDom ||
-		newDom.parentNode == null
+		newDom.parent == null
 	) {
 		// NOTE: excessDomChildren==oldVNode above:
 		// This is a compression of excessDomChildren==null && oldVNode==null!
 		// The values only have the same type when `null`.
 
-		outer: if (oldDom == null || oldDom.parentNode !== parentDom) {
+		outer: if (oldDom == null || oldDom.parent !== parentDom) {
 			parentDom.appendChild(newDom);
 			nextDom = null;
 		} else {
 			// `j<oldChildrenLength; j+=2` is an alternative to `j++<oldChildrenLength/2`
 			for (
 				let sibDom = oldDom, j = 0;
-				(sibDom = sibDom.nextSibling) && j < oldChildren.length;
+				(sibDom = nextSiblingRemote(sibDom)) && j < oldChildren.length;
 				j += 2
 			) {
 				if (sibDom == newDom) {
@@ -302,8 +292,18 @@ export function placeChild(
 	if (nextDom !== undefined) {
 		oldDom = nextDom;
 	} else {
-		oldDom = newDom.nextSibling;
+		oldDom = nextSiblingRemote(newDom);
 	}
 
 	return oldDom;
+}
+
+function nextSiblingRemote(node) {
+	const {parent} = node;
+
+	 if (parent == null) return null;
+
+	 const parentChildren = parent.children;
+
+	 return parentChildren[parentChildren.indexOf(node) + 1] || null;
 }
